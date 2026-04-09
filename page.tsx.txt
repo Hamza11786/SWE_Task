@@ -1,0 +1,147 @@
+"use client";
+import { useState, useEffect } from "react";
+
+export default function CalendarPage() {
+  const today = new Date();
+
+  const [currentDate, setCurrentDate] = useState(new Date());
+  const [start, setStart] = useState(null);
+  const [end, setEnd] = useState(null);
+  const [note, setNote] = useState("");
+  const [animate, setAnimate] = useState(false);
+
+  const year = currentDate.getFullYear();
+  const month = currentDate.getMonth();
+
+  const firstDay = new Date(year, month, 1).getDay();
+  const daysInMonth = new Date(year, month + 1, 0).getDate();
+
+  const monthName = currentDate.toLocaleString("default", {
+    month: "long",
+  });
+
+  // Load notes
+  useEffect(() => {
+    const saved = localStorage.getItem("calendar-note");
+    if (saved) setNote(saved);
+  }, []);
+
+  useEffect(() => {
+    localStorage.setItem("calendar-note", note);
+  }, [note]);
+
+  const handleClick = (day) => {
+    if (!start || (start && end)) {
+      setStart(day);
+      setEnd(null);
+    } else if (day < start) {
+      setStart(day);
+    } else {
+      setEnd(day);
+    }
+  };
+
+  const isInRange = (day) => {
+    return start && end && day > start && day < end;
+  };
+
+  const changeMonth = (dir) => {
+    setAnimate(true);
+    setTimeout(() => {
+      setCurrentDate(new Date(year, month + dir, 1));
+      setStart(null);
+      setEnd(null);
+      setAnimate(false);
+    }, 200);
+  };
+
+  return (
+    <div className="min-h-screen bg-gray-100 p-4 flex justify-center items-center">
+      <div className="w-full max-w-3xl bg-white rounded-xl shadow-lg overflow-hidden">
+        
+        {/* Header */}
+        <div
+          className="h-52 bg-cover bg-center flex flex-col justify-end p-4 text-white"
+          style={{ backgroundImage: "url(https://picsum.photos/900/300)" }}
+        >
+          <div className="flex justify-between items-center">
+            <button onClick={() => changeMonth(-1)}>⬅</button>
+            <h2 className="text-xl font-bold">
+              {monthName} {year}
+            </h2>
+            <button onClick={() => changeMonth(1)}>➡</button>
+          </div>
+        </div>
+
+        {/* Calendar */}
+        <div
+          className={`p-4 transition-all duration-300 ${
+            animate ? "scale-95 opacity-50" : "scale-100 opacity-100"
+          }`}
+        >
+          {/* Week Days */}
+          <div className="grid grid-cols-7 text-center font-semibold mb-2">
+            {["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"].map((d) => (
+              <div key={d}>{d}</div>
+            ))}
+          </div>
+
+          {/* Empty spaces */}
+          <div className="grid grid-cols-7 gap-2">
+            {[...Array(firstDay)].map((_, i) => (
+              <div key={"empty" + i}></div>
+            ))}
+
+            {/* Days */}
+            {[...Array(daysInMonth)].map((_, i) => {
+              const day = i + 1;
+              const dateObj = new Date(year, month, day);
+
+              const isToday =
+                dateObj.toDateString() === today.toDateString();
+
+              const isWeekend =
+                dateObj.getDay() === 0 || dateObj.getDay() === 6;
+
+              let base =
+                "p-3 rounded-lg text-center cursor-pointer border transition";
+
+              if (day === start || day === end) {
+                base += " bg-green-500 text-white";
+              } else if (isInRange(day)) {
+                base += " bg-green-200";
+              } else if (isToday) {
+                base += " bg-blue-500 text-white";
+              } else if (isWeekend) {
+                base += " bg-gray-200";
+              } else {
+                base += " hover:bg-gray-100";
+              }
+
+              return (
+                <div
+                  key={day}
+                  className={base}
+                  onClick={() => handleClick(day)}
+                >
+                  {day}
+                </div>
+              );
+            })}
+          </div>
+
+          {/* Notes */}
+          <div className="mt-4">
+            <h3 className="font-semibold mb-2">Notes</h3>
+            <textarea
+              className="w-full border rounded-lg p-2"
+              placeholder="Write your notes..."
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
